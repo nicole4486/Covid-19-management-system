@@ -1,0 +1,684 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <windows.h>
+#include <cctype>
+#include <string.h>
+using namespace std;
+
+#define MAX_USER 100
+
+typedef struct
+{
+	char name[31];
+	char age[3];
+	char contact[12];
+	char address[81];
+	char username[31];
+	char password[21];
+	char num_dose[2];
+	char dose_type[2];
+	char category;
+}USERLOGIN;
+
+//function prototype
+void login(USERLOGIN userlog[], int num);
+int read_file(USERLOGIN userlog[]);
+void write_file(USERLOGIN userlog[], int size);
+void registration(USERLOGIN userlog[], int num);
+void mainpage(USERLOGIN userlog[], int size, int num);
+void mainmenu();
+void displaycat(USERLOGIN userlog[], int num);
+void update_status(USERLOGIN userlog[], int num);
+bool isInvalidAnswer(int answer);
+void displayQuestion(int index);
+void upVaccination(USERLOGIN userlog[], int num);
+void forgot(USERLOGIN userlog[], int size);
+bool char_validation(char array[]);
+bool int_validation(char array[]);
+void updateDetail(USERLOGIN userlog[], int num);
+void displayDetail(USERLOGIN userlog[], int num);
+
+USERLOGIN userlog[MAX_USER] = { 0 };
+
+int main(void)
+{
+	mainmenu();// call mainmenu to run
+
+	return 0;
+}
+void mainmenu()
+{
+	char choice;
+	do
+	{
+
+		int num_user = read_file(userlog);//call read_file function to read data from file into array of structure and return numbers of existing user
+		cout << "\n\t\t\t\t***********************************************";
+		cout << "\n\t\t\t\t    *     COVID 19 MANAGEMENT SYSTEM      *";
+		cout << "\n\t\t\t\t          Welcome To The Main Menu              ";
+		cout << "\n\t\t\t\t***********************************************\n";
+		cout << "\t\t\t\t| PRESS 1 FOR LOGIN                             |" << endl;
+		cout << "\t\t\t\t| PRESS 2 FOR REGISTER                          |" << endl;
+		cout << "\t\t\t\t| PRESS 3 FOR FORGOT PASSWORD                   |" << endl;
+		cout << "\t\t\t\t| PRESS 4 FOR EXIT                              |" << endl;
+		cout << "\n\t\t\t\tPlease enter your choice : ";
+		cin >> choice;
+		cout << endl;
+
+		switch (choice)
+		{
+		case '1':login(userlog, num_user);break;
+		case '2':registration(userlog, num_user);break;
+		case '3':forgot(userlog, num_user);break;
+		case '4':cout << "\t\t\t\t Thank You ! Stay Safe.\n\n";break;
+		default:system("cls");cout << "\t\t\t\t Please select one options given above \n";break;
+		}
+
+	} while (choice != '4');
+	return;
+}
+
+void forgot(USERLOGIN userlog[], int size)
+{
+	system("cls");
+	int i = 0;
+	bool found = false;
+	char username[31], pass1[21], pass2[21];
+	cout << "\n\t\t\t\t**************************************************";
+	cout << "\n\t\t\t\t                 Reset Password                  ";
+	cout << "\n\t\t\t\t**************************************************";
+	cout << "\n\t\t\t\tEnter your username >> ";
+	cin >> username;
+
+	
+	//check user input username with the username in array to check if it exist
+	while (i < size && !found)
+	{
+		if (strcmp(username, userlog[i].username) == 0)
+			found = true; // if username is match , return found is true
+		else
+			i++; // add i to continue checking
+	}
+
+	if (found)//let user to enter new password if they are existing user
+	{
+		do//let user input again if newpassword 1 & 2 are different
+		{
+			cout << "\n\t\t\t\tEnter new password >> ";
+			cin >> pass1;
+			cout << "\n\t\t\t\tEnter agian to verify >> ";
+			cin >> pass2;
+			if (strcmp(pass1, pass2) == 0)//if no difference between pass1 & pass2 
+			{
+				strcpy(userlog[i].password, pass2);//pass2 is copied to user's password in the structure
+				write_file(userlog, size); // update structure to file
+				cout << "\n\t\t\t\tThank you , your password is reset !\n\n";
+				system("pause");
+			}
+			else
+				cout << "\n\t\t\t\tError password entered !";
+
+		} while (strcmp(pass1, pass2) != 0);
+
+	}
+	else//if user is not exsiting user , not allow to reset password ,ask them to register first
+	{
+		cout << "\n\t\t\t\tYou are not register yet ! Not allow to reset password !\n\n";
+		system("pause");
+	}
+
+
+	system("cls");
+	return;
+}
+
+
+
+int read_file(USERLOGIN userlog[])
+{
+	int index = -1;
+	ifstream in_file("userdata.txt");
+
+	if (!in_file)
+		cout << "Error opening input file.\n";//prompt error if cannot open file
+	else
+	{
+		in_file.getline(userlog[++index].name, 31, '|');
+
+		while (in_file)
+		{
+			in_file.getline(userlog[index].age, 3, '|');
+			in_file.getline(userlog[index].contact, 12, '|');
+			in_file.getline(userlog[index].address, 81, '|');
+			in_file.getline(userlog[index].username, 31, '|');
+			in_file.getline(userlog[index].password, 21, '|');
+			in_file.getline(userlog[index].num_dose, 2, '|');
+			in_file.getline(userlog[index].dose_type, 2, '|');
+			in_file >> userlog[index].category;
+
+			if (in_file.peek() == '\n')
+				in_file.ignore(256, '\n');
+
+			//read next username
+			in_file.getline(userlog[++index].name, 31, '|');
+		}
+		in_file.close();
+		
+	}
+	return index;
+}
+
+void write_file(USERLOGIN userlog[], int size)
+{
+	ofstream out_file("userdata.txt");
+
+	if (!out_file)
+		cout << "Error opening output file.\n";
+	else
+	{
+		for (int i = 0;i < size;i++)
+		{
+			out_file << userlog[i].name << "|" << userlog[i].age << "|"
+				<< userlog[i].contact << "|" << userlog[i].address << "|"
+				<< userlog[i].username << "|" << userlog[i].password << "|"
+				<< userlog[i].num_dose << "|" << userlog[i].dose_type << "|" << userlog[i].category << endl;
+		}
+
+		out_file.close();
+	}
+	return;
+}
+
+
+
+void login(USERLOGIN userlog[], int num)
+{
+	
+	cin.clear();
+	char username[31], password[21];
+	bool exist = false;
+	int i = 0;
+	system("cls");
+	cout << "\n\t\t\t\t*************************************************";
+	cout << "\n\t\t\t\t                 User Log In                     ";
+	cout << "\n\t\t\t\t*************************************************";
+	cout << "\n\t\t\t\tEnter username >> ";
+	cin.ignore();
+	cin.get(username, 31);
+	cin.ignore();
+
+	cout << "\n\t\t\t\tEnter password >> ";
+	cin.get(password, 21);
+
+	while (i < num && !exist)//to check are the username & password matched with the data
+	{
+		if (strcmp(username, userlog[i].username) == 0 && strcmp(password, userlog[i].password) == 0)
+			exist = true;
+		else
+			i++;
+	}
+
+	if (exist)//if match , user able to login and proceed to mainpage
+	{
+		system("cls");
+		mainpage(userlog, num, i);
+	}
+	else// if not match , user not able to log in
+	{
+		cout << "\n\t\t\t\tInvalid username and password !!\n";
+		system("pause");
+	}
+
+	system("cls");
+	return;
+}
+
+
+bool char_validation(char array[]) // function to check whether the user input is alphabet
+{
+    for(int i=0;i<strlen(array);i++) 
+	{
+        if ((array[i] != ' ') && (!isalpha(array[i])) )
+		{
+            return false;
+        }
+    }
+    return true;
+}
+
+bool int_validation(char array[])// function to check whether the user input is number
+{
+	int i = 0;
+	bool valid;
+	for (int i = 0;array[i] != '\0';i++)
+	{
+		//cout << array[i];
+		if (isdigit(array[i]))
+			valid = true;
+		else
+			valid = false;
+	}
+	return valid;
+}
+
+
+void registration(USERLOGIN userlog[], int num)
+{
+	system("cls");
+	char name[31];
+	bool exist = false;
+	bool valid = false;
+	int i = 0;
+	int index = num;
+	num++;
+
+	cout << "\n\t\t\t\t*************************************************";
+	cout << "\n\t\t\t\t                 User Registration               ";
+	cout << "\n\t\t\t\t*************************************************";
+	do
+	{
+		cout << "\n\t\t\t\tEnter name >> "; // let user input name
+		cin.ignore();
+		cin.get(name, 31);
+		valid = char_validation(name);//do validation
+		if (valid == false)
+			cout << "\n\t\t\t\tInvalid name entered ! Please enter alphabet name !\n";
+	} while (valid == false);
+	
+	while (i < num && !exist)// to check whether the user is existing user
+	{
+		if (strcmp(name, userlog[i].name) == 0)
+			exist = true;
+		else
+			i++;
+	}
+	if (exist) // if true , not allow user to register 
+	{
+		cout << "\n\t\t\t\tYou are existing user ! Not allow to register again.\n\t\t\t\t";
+		system("pause");
+		system("cls");
+
+	}
+	else// allow user to continue input their detail to register since they are not existing user
+	{
+		char age[20];
+		strcpy(userlog[index].name, name);
+		do
+		{
+			
+			cin.ignore();
+			cout << "\n\t\t\t\tEnter age >> "; // let user input age
+			cin >> age;
+			valid = int_validation(age); // do validation
+			if (valid == false)
+				cout << "\n\t\t\t\tInvalid age entered ! Please enter integer only !\n";
+			else
+				strcpy(userlog[index].age, age);
+
+		} while (valid==false);
+		
+		
+		char contact [12];
+		do
+		{
+			cin.ignore();
+			cout << "\n\t\t\t\tEnter contact number >> ";//let user input contact 
+			cin >> contact;
+			valid = int_validation(contact);// do validation
+			if (valid == false)
+				cout << "\n\t\t\t\tInvalid contact entered ! Please enter integer only !\n";
+			else
+				strcpy(userlog[index].contact,contact);
+				
+		} while (valid == false);
+
+		cout << "\n\t\t\t\tEnter home address >> ";//let user input addresss
+		cin.ignore();
+		cin.get(userlog[index].address, 81);
+
+		cout << "\n\t\t\t\tEnter username for log in >> ";//let user set username
+		cin.ignore();
+		cin.get(userlog[index].username, 31);
+
+		cout << "\n\t\t\t\tEnter password for log in >> ";//let user set password 
+		cin.ignore();
+		cin.get(userlog[index].password, 21);
+
+		cout << "\n\t\t\t\tRegistered successfully !";
+		system("pause");
+		system("cls");
+		mainpage(userlog, num, index);//pass array of structure to mainpage
+	}
+
+}
+void mainpage(USERLOGIN userlog[], int size, int num)
+{
+	char c;
+	do//loop statement if user input is invalid
+	{
+		HANDLE col;
+		col = GetStdHandle(STD_OUTPUT_HANDLE);
+		cout << "\n\t\t\t\t*************************************************";
+		cout << "\n\t\t\t\t    *     COVID 19 MANAGEMENT SYSTEM      *      ";
+		cout << "\n\t\t\t\t                   Main Page                     ";
+		cout << "\n\t\t\t\t*************************************************\n\n";
+		cout << "\n\t\t\t\tHello ! " << userlog[num].name << endl;
+		
+		displaycat(userlog, num); //pass array of structure and call function to run
+		SetConsoleTextAttribute(col, 7);
+		
+		cout << "\n\t\t\t\t| PRESS 1 FOR UPDATE PERSONAL DETAIL                  |" << endl;
+		cout << "\t\t\t\t| PRESS 2 FOR UPDATE COVID STATUS                     |" << endl;
+		cout << "\t\t\t\t| PRESS 3 FOR UPDATE VACCINATION STATUS               |" << endl;
+		cout << "\t\t\t\t| PRESS 4 FOR EXIT                                    |" << endl;
+		cout << "\n\t\t\t\t Please enter your choice : ";
+		cin >> c;
+		
+		switch (c)
+		{
+		case '1':displayDetail(userlog,num);break;//pass array and call function
+		case '2':update_status(userlog, num);break;
+		case '3':upVaccination(userlog, num);break;
+		case '4':write_file(userlog, size);system("cls");break;
+		default:system("cls");cout << "\t\t\t Please select one options given above \n" << endl;break;
+		}
+
+
+	} while (c != '4');
+
+	return;
+}
+
+void displayDetail(USERLOGIN userlog[], int num)
+{
+	char opt;
+	do// loop if user input is invalid
+	{	//show user personal detail
+		system("cls");
+		cout << "\n\t\t\t\t*****************************************************";
+		cout << "\n\t\t\t\t                 Personal Detail              ";
+		cout << "\n\t\t\t\t*****************************************************\n\n";
+		cout << "\t\t\t\t1. Name : " << userlog[num].name
+			<< "\n\t\t\t\t2. Age : " << userlog[num].age
+			<< "\n\t\t\t\t3. Contact Number : " << userlog[num].contact
+			<< "\n\t\t\t\t4. Home Address : " << userlog[num].address << endl;
+			
+		cout << "\n\t\t\t\t<U>pdate  <E>xit  >> ";//ask user if they want to update or exit
+		cin >> opt;
+		
+		if (opt == 'U' || opt == 'u')
+			updateDetail(userlog, num);//pass array and call function
+		else if (opt!='E'&& opt!='e')
+		{
+			cout << "\n\t\t\t\tInvalid option entered !\n\t\t\t\t";
+			system("pause");
+		}
+		
+	}while(opt!='E'&& opt!='e');
+	
+	system("cls");
+	return;	
+}
+
+void updateDetail(USERLOGIN userlog[], int num)
+{
+	
+	char name[31];
+	char valid = false;
+	char opt;
+	
+	do//loop if user input is invalid
+	{
+		cin.ignore();
+		cout << "\n\t\t\t\tEnter which detail to update (1 ,2, 3 or 4 )>> ";
+		cin >> opt;// ask user which detail want to update
+	
+		switch (opt)
+		{
+			
+		case'1': 
+			char name [31];
+			do
+			{
+			cin.ignore();
+			cout << "\n\t\t\t\tEnter the latest name >> ";
+			cin >> name;
+			valid = char_validation(name);//do validation
+			if (valid == false)
+				cout << "\n\t\t\t\tInvalid name ! Please enter correct alphabet name !\n";
+			else
+				strcpy(userlog[num].name, name);
+				
+			}while (valid == false);
+			break;
+			
+		case'2':
+			char age[3];
+			do
+			{
+			cin.ignore();
+			cout << "\n\t\t\t\tEnter the latest age >> ";
+			cin >> age;
+			valid = int_validation(age);//do validation
+			if (valid == false)
+				cout << "\n\t\t\t\tInvalid age ! Please enter correct age number !\n";
+			else
+				strcpy(userlog[num].age,age);
+				
+			}while (valid == false);
+			break;
+			
+		case'3':
+			char contact[12];
+			do
+			{
+			cin.ignore();
+			cout << "\n\t\t\t\tEnter the latest contact number >> ";
+			cin >> contact;
+			valid = int_validation(contact);//do validation
+			if (valid == false)
+				cout << "\n\t\t\t\tInvalid contact ! Please enter correct contact number !\n";
+			else
+				strcpy(userlog[num].contact,contact);
+				
+			}while (valid == false);
+			
+			break;
+			
+		case'4':
+			cout << "\n\t\t\t\tEnter the latest address >> ";
+			cin.get(userlog[num].address, 81);
+			break;
+			
+		default:cout << "\n\t\t\t\tInvalid option entered !\n";break;
+		}
+	}while(opt!='1' && opt!='2' && opt != '3' && opt !='4');
+	
+	cout << "\n\t\t\t\tUpdated Successfully ! ";
+	system("pause");
+	system("cls");
+	return;
+}
+	
+void update_status(USERLOGIN userlog[], int num)
+{
+	system("cls");
+	char tresult;
+	cout << "\n\t\t\t\t*************************************************";
+	cout << "\n\t\t\t\t                Update Covid Test                ";
+	cout << "\n\t\t\t\t*************************************************";
+	do//loop if input invalid
+	{
+		cin.clear();
+		cout << "\n\n\t\t\t\tEnter <P>ositive or <N>egative for covid test result >> ";
+		cin >> tresult;
+		if (toupper(tresult) != 'P' && toupper(tresult) != 'N')
+			cout << "\n\t\t\t\tInvalid entered ! Please enter either P or N.";
+	} while (toupper(tresult) != 'P' && toupper(tresult) != 'N');
+
+
+	int index = 0, result = 0, answer = -1;
+
+	do {
+		displayQuestion(index);
+		cout << "\n\n\t\t\t\tEnter 1 for (YES) , 0 for (NO) >> ";
+		cin >> answer;
+
+
+		if (isInvalidAnswer(answer) || cin.fail())
+		{
+			cin.clear(); //Clear cin error flag
+			cin.ignore(512, '\n'); // Discard cin buffer value
+			cout << "\n\n\t\t\t\tYou entered an invalid number !";
+		}
+		else {
+			result += answer;
+			index++;
+		}
+
+	} while (isInvalidAnswer(answer) || index < 5);
+
+	if (toupper(tresult) == 'P')
+		userlog[num].category = 'A';
+	else if (result > 0)
+		userlog[num].category = 'B';
+	else
+		userlog[num].category = 'C';
+
+	system("pause");
+	system("cls");
+	return;
+
+}
+bool isInvalidAnswer(int answer)
+{
+	return answer != 0 && answer != 1;
+}
+
+void displaycat(USERLOGIN userlog[], int num)
+{
+	HANDLE col;
+	col = GetStdHandle(STD_OUTPUT_HANDLE);
+
+
+	if (userlog[num].category == 'A')
+	{
+		SetConsoleTextAttribute(col, 4);
+		cout << "\n\t\t\t\tCategory : A (CONFIRMED CASE - positive for COVID-19)\n"
+			 << "\t\t\t\tYou have to self-quarantine 7 days.\n"
+			 << "\t\t\t\tYou can be released ealier if you tested negative on Day 4.\n";
+	}
+	else if (userlog[num].category == 'B')
+	{
+		SetConsoleTextAttribute(col, 6);
+		cout << "\n\t\t\t\tCategory : B (SUSPECTED - close contact with COVID-19 patient)\n"
+			 << "\t\t\t\tYou have to quarantine 3 days if you have close contact with positive patient.\n"
+			 << "\t\t\t\tSelf-test require on Day1 and Day3.\n "
+			 << "\t\t\t\tYou can be released from quarantine if test result on Day3 is negative.\n";
+	}
+	else if (userlog[num].category == 'C')
+	{
+		SetConsoleTextAttribute(col, 10);
+		cout << "\n\t\t\t\tCategory : C (LOW RISK)\n"
+			 << "\t\t\t\tYou can work or study as usual.\n"
+			 << "\t\t\t\tYou have to wear mask when going to public place.\n";
+	}
+	else
+	{
+		SetConsoleTextAttribute(col, 4);
+		cout << "\n\t\t\t\tYou have not update your covid and vaccination status !\n\t\t\t\t Press 2 or 3 to update immediately!\n";
+	}
+		
+}
+
+
+
+void displayQuestion(int index) {
+	switch (index) {
+	case 0:
+		cout << "\n\t\t\t\tQ1. Are you exhibiting 2 or more symptom as listed below ?\n"
+			<< "\n\t\t\t\t" << setw(14) << left << "-Fewer" << "-Sore throat\n"
+			<< "\n\t\t\t\t" << setw(14) << left << "-Chills" << "-Nausea or vomiting\n"
+			<< "\n\t\t\t\t" << setw(14) << left << "-Shivering" << "-Diarrhea\n"
+			<< "\n\t\t\t\t" << setw(14) << left << "-Body ache" << "-Fatigue\n"
+			<< "\n\t\t\t\t" << setw(14) << left << "-Headache\n";
+		break;
+	case 1:
+		cout << "\n\t\t\t\tQ2.Besides the above, are you exhibiting any of the symptoms listed below ?\n"
+			<< "\n\t\t\t\t" << setw(20) << left << "-Cough" << "-Difficulty breathing\n"
+			<< "\n\t\t\t\t" << setw(20) << left << "-Loss of smell" << "-Loss of taste\n";
+		break;
+	case 2:
+		cout << "\n\t\t\t\tQ3.Have you attended any event/areas associated with known COVID-19 cluster ?\n";
+		break;
+	case 3:
+		cout << "\n\t\t\t\tQ4.Have you travelled abroad within the last 14 days ?\n";
+		break;
+	default:
+		cout << "\n\t\t\t\tQ5.have you had close contact with any confirmed or suspected COVID-19 cases"
+			<< "\n\t\t\t\twithin the last 14 days ?\n\t\t\t\t";
+		break;
+	}
+	return;
+}
+
+void upVaccination(USERLOGIN userlog[], int num)
+{
+	system("cls");
+	char numdose[2];
+	char status = false;
+	cout << "\n\t\t\t\t************************************************";
+	cout << "\n\t\t\t\t              Update Vaccination                ";
+	cout << "\n\t\t\t\t************************************************\n";
+	do
+	{
+		cout << "\n\t\t\t\tQ1.Which dose to update :\n";	
+		cout << "\t\t\t\t1. First dose\n";
+		cout << "\t\t\t\t2. Second dose\n";
+		cout << "\t\t\t\t3. Third dose\n";
+		cout << "\t\t\t\t4. Fourth dose\n";
+		cout << "\t\t\t\tEnter your choice: ";
+		cin >> numdose;
+		for (int i = 0;numdose[i] != '\0';i++)
+		{
+			if(numdose[i]=='1'|| numdose[i]=='2'|| numdose[i]=='3' || numdose[i]=='4' )
+				status = true;
+		}
+		if (status == true)
+			strcpy(userlog[num].num_dose,numdose);
+		else
+			cout << "\n\t\t\t\tInvalid option entered !\n\t\t\t\t" ;
+			
+	}while(status == false);
+	
+	char dosetype[2];
+	do
+	{
+		cout << "\n\t\t\t\tQ2.Choose the vaccine type: ( Enter first character of vaccine )\n";
+		cout << "\t\t\t\t<P> Pfizer\n";
+		cout << "\t\t\t\t<S> Sinovac\n";
+		cout << "\t\t\t\t<A> AZ\n";
+		cout << "\t\t\t\tEnter your choice: ";
+		cin >> dosetype;
+		for (int i = 0;dosetype[i] != '\0';i++)
+		{
+			if(toupper(dosetype[i])=='P'|| toupper(dosetype[i])=='S'|| toupper(dosetype[i])=='A')
+				status = false;
+		}
+		
+		if (status == false)
+			strcpy(userlog[num].dose_type,dosetype);
+		else
+			cout << "\n\t\t\t\tInvalid option entered ! \n\t\t\t\t";
+			
+	}while(status == true);
+	
+	cout << "\n\t\t\t\tThank you ! Your record has been updated into database.\n\t\t\t\t";
+	system("pause");
+	system("cls");
+	return;
+}
+
